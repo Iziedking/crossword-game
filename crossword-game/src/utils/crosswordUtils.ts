@@ -12,7 +12,7 @@ export interface Grid {
   cells: Cell[][]
 }
 
-export function createGrid(rows: number, cols: number, words: CrosswordWord[]): Grid {
+export function createGrid(rows: number, cols: number, words: CrosswordWord[], levelId: number): Grid {
   // Initialize empty grid
   const cells: Cell[][] = Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => ({ letter: null, userInput: '', isHint: false }))
@@ -30,8 +30,8 @@ export function createGrid(rows: number, cols: number, words: CrosswordWord[]): 
     }
   }
 
-  // Generate random hints
-  const hints = generateRandomHints(words)
+  // Generate random hints based on level
+  const hints = generateRandomHints(words, levelId)
   
   // Apply hints to grid
   for (const hint of hints) {
@@ -51,45 +51,42 @@ interface HintPosition {
   letter: string
 }
 
-function generateRandomHints(words: CrosswordWord[]): HintPosition[] {
+function generateRandomHints(words: CrosswordWord[], levelId: number): HintPosition[] {
   const hints: HintPosition[] = []
   const usedPositions = new Set<string>()
   
-  // Determine number of hints based on total words
-  // Fewer words = more likely to get hints per word
-  // More words = fewer hints overall
-  const totalWords = words.length
-  
   let numHints: number
-  if (totalWords <= 3) {
-    // Level 1 (easy): 1-2 hints
-    numHints = Math.random() < 0.7 ? 1 : 2
-  } else if (totalWords <= 7) {
-    // Level 2 (medium): 2-3 hints
-    numHints = Math.random() < 0.6 ? 2 : 3
+  
+  if (levelId === 1) {
+    // Level 1: At most 3 hints (1-3)
+    numHints = 1 + Math.floor(Math.random() * 3) // 1, 2, or 3
+  } else if (levelId === 2) {
+    // Level 2: At least 3 hints (3-5)
+    numHints = 3 + Math.floor(Math.random() * 3) // 3, 4, or 5
   } else {
-    // Level 3 (hard): 2-4 hints, rarely 4
-    const rand = Math.random()
-    if (rand < 0.5) numHints = 2
-    else if (rand < 0.85) numHints = 3
-    else numHints = 4
+    // Level 3: At least 3 hints (3-6)
+    numHints = 3 + Math.floor(Math.random() * 4) // 3, 4, 5, or 6
   }
   
   // Shuffle words to pick random ones for hints
   const shuffledWords = [...words].sort(() => Math.random() - 0.5)
   
-  // Pick hints from different words
-  for (let i = 0; i < Math.min(numHints, shuffledWords.length); i++) {
-    const word = shuffledWords[i]
+  // We might need multiple hints from same word if numHints > words.length
+  let wordIndex = 0
+  let attempts = 0
+  const maxAttempts = numHints * 3
+  
+  while (hints.length < numHints && attempts < maxAttempts) {
+    attempts++
+    const word = shuffledWords[wordIndex % shuffledWords.length]
+    wordIndex++
     
-    // Pick a random position within the word (not first letter to make it harder)
-    // Prefer middle letters for longer words
+    // Pick a random position within the word
     let letterIndex: number
     if (word.word.length <= 3) {
-      // Short words: any position
       letterIndex = Math.floor(Math.random() * word.word.length)
     } else if (word.word.length <= 5) {
-      // Medium words: avoid first letter 70% of the time
+      // Prefer non-first letters
       if (Math.random() < 0.7) {
         letterIndex = 1 + Math.floor(Math.random() * (word.word.length - 1))
       } else {

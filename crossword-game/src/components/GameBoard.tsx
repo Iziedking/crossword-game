@@ -7,16 +7,18 @@ import { CluesPanel } from './CluesPanel'
 
 interface GameBoardProps {
   level: CrosswordLevel
+  isLastLevel: boolean
+  initialTime: number
   onComplete: (time: number, gaveUp: boolean) => void
   onBack: () => void
-  onGaveUp: () => void
 }
 
 export function GameBoard({
   level,
+  isLastLevel,
+  initialTime,
   onComplete,
   onBack,
-  onGaveUp,
 }: GameBoardProps) {
   const {
     grid,
@@ -28,6 +30,8 @@ export function GameBoard({
     rows: level.gridSize.rows,
     cols: level.gridSize.cols,
     words: level.words,
+    levelId: level.id,
+    initialTime,
   })
 
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null)
@@ -87,15 +91,18 @@ export function GameBoard({
 
   const handleViewSolution = () => {
     setGaveUp(true)
-    onGaveUp()
     showSolution()
     setShowGiveUpModal(false)
   }
 
   const handleContinue = useCallback(() => {
     setShowSuccessModal(false)
-    onComplete(secondsElapsed, gaveUp)
-  }, [onComplete, secondsElapsed, gaveUp])
+    onComplete(secondsElapsed, false)
+  }, [onComplete, secondsElapsed])
+
+  const handleContinueAfterGiveUp = useCallback(() => {
+    onComplete(secondsElapsed, true)
+  }, [onComplete, secondsElapsed])
 
   const handleBackToMenu = useCallback(() => {
     setShowGiveUpModal(false)
@@ -218,7 +225,7 @@ export function GameBoard({
               Don't Give Up!
             </h2>
             <p className="text-gray-500 mb-6">
-              Are you sure? If you view the solution, your score won't be recorded on the leaderboard.
+              Are you sure? Giving up on this level will affect your final achievement rank.
             </p>
             
             <div className="space-y-3">
@@ -258,34 +265,43 @@ export function GameBoard({
             </div>
             
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Level Complete!
+              {isLastLevel ? 'All Levels Complete!' : 'Level Complete!'}
             </h2>
             <p className="text-gray-500 mb-2">
               You solved it in <span className="font-mono font-semibold text-cyan-600">{formatTime(secondsElapsed)}</span>
             </p>
             <p className="text-sm text-gray-400 mb-6">
-              Great job!
+              {isLastLevel ? 'Amazing work!' : 'Great job!'}
             </p>
             
             <button
               onClick={handleContinue}
               className="w-full py-3 bg-cyan-500 text-white font-medium rounded-lg hover:bg-cyan-600 transition-colors"
             >
-              Continue to Next Level
+              {isLastLevel ? 'See Your Results' : 'Continue to Next Level'}
             </button>
           </div>
         </div>
       )}
 
-      {/* Solution Viewed - Continue Button */}
+      {/* Solution Viewed - Continue/Finish Button */}
       {gaveUp && !showGiveUpModal && (
         <div className="fixed bottom-6 left-0 right-0 flex justify-center z-40">
-          <button
-            onClick={() => onComplete(secondsElapsed, true)}
-            className="px-8 py-3 bg-cyan-500 text-white font-medium rounded-lg shadow-lg hover:bg-cyan-600 transition-colors"
-          >
-            Continue to Next Level
-          </button>
+          {isLastLevel ? (
+            <button
+              onClick={handleContinueAfterGiveUp}
+              className="px-8 py-3 bg-gray-500 text-white font-medium rounded-lg shadow-lg hover:bg-gray-600 transition-colors"
+            >
+              Back to Main Menu
+            </button>
+          ) : (
+            <button
+              onClick={handleContinueAfterGiveUp}
+              className="px-8 py-3 bg-cyan-500 text-white font-medium rounded-lg shadow-lg hover:bg-cyan-600 transition-colors"
+            >
+              Continue to Next Level
+            </button>
+          )}
         </div>
       )}
     </div>

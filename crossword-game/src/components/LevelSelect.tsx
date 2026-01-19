@@ -10,11 +10,10 @@ export function LevelSelect({
   completedLevels 
 }: LevelSelectProps) {
   return (
-    <div className="min-h-[calc(100vh-4rem)] w-full bg-gray-50">
-      <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+    <div className="min-h-[calc(100vh-4rem)] w-full bg-gray-50 flex flex-col">
+      <div className="flex-1 w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
         {/* Hero section */}
         <div className="text-center mb-12">
-          {/*logo */}
           <img 
             src="/billions-logo.png" 
             alt="Billions" 
@@ -97,6 +96,28 @@ export function LevelSelect({
           })}
         </div>
       </div>
+
+      {/* Footer with X link */}
+      <footer className="w-full py-6 border-t border-gray-200 bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center gap-2">
+          <span className="text-sm text-gray-500">Built by</span>
+          <a 
+            href="https://x.com/Fiery_Eyed_Owl" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-gray-700 hover:text-gray-900 transition-colors"
+          >
+            <svg 
+              className="w-5 h-5" 
+              viewBox="0 0 24 24" 
+              fill="currentColor"
+            >
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            <span className="text-sm font-medium">@Fiery_Eyed_Owl</span>
+          </a>
+        </div>
+      </footer>
     </div>
   )
 }

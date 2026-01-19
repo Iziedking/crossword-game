@@ -12,28 +12,27 @@ const Index = () => {
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0)
   const [completedLevelIds, setCompletedLevelIds] = useState<number[]>([])
   const [totalTime, setTotalTime] = useState(0)
-  const [gaveUp, setGaveUp] = useState(false)
+  const [levelsCompletedLegit, setLevelsCompletedLegit] = useState(0)
 
   const handleSelectLevel = useCallback((levelIndex: number) => {
     setCurrentLevelIndex(levelIndex)
     setView('game')
-    setGaveUp(false)
   }, [])
 
-  const handleLevelComplete = useCallback((time: number, didGiveUp: boolean) => {
+  const handleLevelComplete = useCallback((time: number, gaveUp: boolean) => {
     const currentLevel = levels[currentLevelIndex]
     
-    // Update total time
-    setTotalTime(prev => prev + time)
+    // Update total time (time is cumulative from GameBoard)
+    setTotalTime(time)
     
     // Mark level as completed
     setCompletedLevelIds(prev => 
       prev.includes(currentLevel.id) ? prev : [...prev, currentLevel.id]
     )
     
-    // Track if user gave up at any point
-    if (didGiveUp) {
-      setGaveUp(true)
+    // Track legitimate completions (without giving up)
+    if (!gaveUp) {
+      setLevelsCompletedLegit(prev => prev + 1)
     }
     
     // Move to next level or complete
@@ -48,7 +47,7 @@ const Index = () => {
     setCompletedLevelIds([])
     setCurrentLevelIndex(0)
     setTotalTime(0)
-    setGaveUp(false)
+    setLevelsCompletedLegit(0)
     setView('home')
   }, [])
 
@@ -56,11 +55,8 @@ const Index = () => {
     setView('home')
   }, [])
 
-  const handleGaveUp = useCallback(() => {
-    setGaveUp(true)
-  }, [])
-
   const currentLevel = levels[currentLevelIndex]
+  const isLastLevel = currentLevelIndex === levels.length - 1
 
   return (
     <div className="min-h-screen w-full bg-white">
@@ -77,15 +73,17 @@ const Index = () => {
         <GameBoard
           key={currentLevel.id}
           level={currentLevel}
+          isLastLevel={isLastLevel}
+          initialTime={totalTime}
           onComplete={handleLevelComplete}
           onBack={handleBackToHome}
-          onGaveUp={handleGaveUp}
         />
       )}
 
       {view === 'complete' && (
         <GameComplete
           totalTime={totalTime}
+          levelsCompletedLegit={levelsCompletedLegit}
           onPlayAgain={handlePlayAgain}
         />
       )}

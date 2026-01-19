@@ -6,11 +6,13 @@ interface UseGameStateProps {
   rows: number
   cols: number
   words: CrosswordWord[]
+  levelId: number
+  initialTime: number
 }
 
-export function useGameState({ rows, cols, words }: UseGameStateProps) {
-  const [grid, setGrid] = useState<Grid>(() => createGrid(rows, cols, words))
-  const [secondsElapsed, setSecondsElapsed] = useState(0)
+export function useGameState({ rows, cols, words, levelId, initialTime }: UseGameStateProps) {
+  const [grid, setGrid] = useState<Grid>(() => createGrid(rows, cols, words, levelId))
+  const [secondsElapsed, setSecondsElapsed] = useState(initialTime)
   const [isComplete, setIsComplete] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
