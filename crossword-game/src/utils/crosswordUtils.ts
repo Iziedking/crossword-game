@@ -58,14 +58,14 @@ function generateRandomHints(words: CrosswordWord[], levelId: number): HintPosit
   let numHints: number
   
   if (levelId === 1) {
-    // Level 1: At most 3 hints (1-3)
+    // Level 1: At most 3 hints (1, 2, or 3)
     numHints = 1 + Math.floor(Math.random() * 3) // 1, 2, or 3
   } else if (levelId === 2) {
-    // Level 2: At least 3 hints (3-5)
+    // Level 2: At least 3, at most 5 (3, 4, or 5)
     numHints = 3 + Math.floor(Math.random() * 3) // 3, 4, or 5
   } else {
-    // Level 3: At least 3 hints (3-6)
-    numHints = 3 + Math.floor(Math.random() * 4) // 3, 4, 5, or 6
+    // Level 3: At least 4, at most 7 (4, 5, 6, or 7)
+    numHints = 4 + Math.floor(Math.random() * 4) // 4, 5, 6, or 7
   }
   
   // Shuffle words to pick random ones for hints
