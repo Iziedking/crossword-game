@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CrosswordWord } from '@/data/crosswordData'
 import type { Grid } from '@/utils/crosswordUtils'
 
@@ -24,7 +24,10 @@ export function CrosswordGrid({
   showingSolution,
 }: CrosswordGridProps) {
   const gridRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [cellSize, setCellSize] = useState(36)
 
+  // Build clue number map
   const clueNumbers = new Map<string, number>()
   words.forEach((word) => {
     const key = `${word.row},${word.col}`
@@ -33,31 +36,114 @@ export function CrosswordGrid({
     }
   })
 
+  // Responsive cell sizing
+  useEffect(() => {
+    const calculateCellSize = () => {
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      
+      // Mobile: fit grid in available width (with padding)
+      // Desktop: use larger cells
+      const maxCols = grid.cols
+      const maxRows = grid.rows
+      
+      let maxWidth: number
+      let maxHeight: number
+      
+      if (vw < 640) {
+        // Mobile: use almost full width, reserve space for padding
+        maxWidth = vw - 32 // 16px padding on each side
+        maxHeight = vh * 0.45 // Reserve space for clues
+      } else if (vw < 1024) {
+        // Tablet
+        maxWidth = Math.min(vw * 0.6, 500)
+        maxHeight = vh * 0.55
+      } else {
+        // Desktop
+        maxWidth = Math.min(vw * 0.45, 600)
+        maxHeight = vh * 0.7
+      }
+      
+      // Calculate cell size based on grid dimensions
+      const sizeByWidth = Math.floor((maxWidth - maxCols) / maxCols) // Account for 1px gaps
+      const sizeByHeight = Math.floor((maxHeight - maxRows) / maxRows)
+      
+      // Use the smaller of the two to ensure grid fits
+      const calculatedSize = Math.min(sizeByWidth, sizeByHeight)
+      
+      // Clamp between reasonable min/max
+      const finalSize = Math.max(28, Math.min(50, calculatedSize))
+      
+      setCellSize(finalSize)
+    }
+
+    calculateCellSize()
+    window.addEventListener('resize', calculateCellSize)
+    
+    return () => window.removeEventListener('resize', calculateCellSize)
+  }, [grid.cols, grid.rows])
+
+  // Check if cell is in selected word
   const isInSelectedWord = (row: number, col: number): boolean => {
     if (!selectedCell) return false
 
-    const word = words.find((w) => {
-      if (w.direction !== selectedDirection) return false
+    for (const word of words) {
+      if (word.direction !== selectedDirection) continue
       
-      for (let i = 0; i < w.word.length; i++) {
-        const r = w.direction === 'across' ? w.row : w.row + i
-        const c = w.direction === 'across' ? w.col + i : w.col
+      // Check if selected cell is in this word
+      let selectedInWord = false
+      for (let i = 0; i < word.word.length; i++) {
+        const r = word.direction === 'across' ? word.row : word.row + i
+        const c = word.direction === 'across' ? word.col + i : word.col
         if (r === selectedCell.row && c === selectedCell.col) {
-          const checkR = w.direction === 'across' ? w.row : w.row + i
-          const checkC = w.direction === 'across' ? w.col + i : w.col
-          return checkR === row && checkC === col
+          selectedInWord = true
+          break
         }
       }
-      return false
-    })
-
-    return !!word
+      
+      if (!selectedInWord) continue
+      
+      // Check if current cell is in this word
+      for (let i = 0; i < word.word.length; i++) {
+        const r = word.direction === 'across' ? word.row : word.row + i
+        const c = word.direction === 'across' ? word.col + i : word.col
+        if (r === row && c === col) {
+          return true
+        }
+      }
+    }
+    return false
   }
 
   const handleKeyDown = (e: React.KeyboardEvent, row: number, col: number) => {
+    if (showingSolution) return
+    
     if (e.key === 'Backspace') {
       e.preventDefault()
       onCellInput(row, col, '')
+      
+      // Move to previous cell in word
+      const word = words.find((w) => {
+        if (w.direction !== selectedDirection) return false
+        for (let i = 0; i < w.word.length; i++) {
+          const r = w.direction === 'across' ? w.row : w.row + i
+          const c = w.direction === 'across' ? w.col + i : w.col
+          if (r === row && c === col) return true
+        }
+        return false
+      })
+      
+      if (word) {
+        const currentIndex = selectedDirection === 'across' 
+          ? col - word.col 
+          : row - word.row
+        
+        if (currentIndex > 0) {
+          const prevRow = selectedDirection === 'across' ? row : row - 1
+          const prevCol = selectedDirection === 'across' ? col - 1 : col
+          onCellClick(prevRow, prevCol)
+        }
+      }
       return
     }
 
@@ -67,26 +153,17 @@ export function CrosswordGrid({
       return
     }
 
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || 
-        e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
       e.preventDefault()
       
       let newRow = row
       let newCol = col
 
       switch (e.key) {
-        case 'ArrowUp':
-          newRow = Math.max(0, row - 1)
-          break
-        case 'ArrowDown':
-          newRow = Math.min(grid.rows - 1, row + 1)
-          break
-        case 'ArrowLeft':
-          newCol = Math.max(0, col - 1)
-          break
-        case 'ArrowRight':
-          newCol = Math.min(grid.cols - 1, col + 1)
-          break
+        case 'ArrowUp': newRow = Math.max(0, row - 1); break
+        case 'ArrowDown': newRow = Math.min(grid.rows - 1, row + 1); break
+        case 'ArrowLeft': newCol = Math.max(0, col - 1); break
+        case 'ArrowRight': newCol = Math.min(grid.cols - 1, col + 1); break
       }
 
       if (grid.cells[newRow][newCol].letter) {
@@ -99,6 +176,7 @@ export function CrosswordGrid({
       e.preventDefault()
       onCellInput(row, col, e.key)
       
+      // Move to next cell in word
       const word = words.find((w) => {
         if (w.direction !== selectedDirection) return false
         for (let i = 0; i < w.word.length; i++) {
@@ -115,12 +193,8 @@ export function CrosswordGrid({
           : row - word.row
         
         if (currentIndex < word.word.length - 1) {
-          const nextRow = selectedDirection === 'across' 
-            ? row 
-            : row + 1
-          const nextCol = selectedDirection === 'across' 
-            ? col + 1 
-            : col
+          const nextRow = selectedDirection === 'across' ? row : row + 1
+          const nextCol = selectedDirection === 'across' ? col + 1 : col
           
           if (grid.cells[nextRow]?.[nextCol]?.letter) {
             onCellClick(nextRow, nextCol)
@@ -130,6 +204,7 @@ export function CrosswordGrid({
     }
   }
 
+  // Focus selected cell
   useEffect(() => {
     if (selectedCell && gridRef.current) {
       const input = gridRef.current.querySelector(
@@ -140,22 +215,25 @@ export function CrosswordGrid({
   }, [selectedCell])
 
   return (
-    <div 
-      ref={gridRef}
-      className="inline-block bg-white border-2 border-gray-900 shadow-xl"
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${grid.cols}, 40px)`,
-        gap: 0
-      }}
-    >
+    <div ref={containerRef} className="w-full flex justify-center">
+      <div 
+        ref={gridRef}
+        className="inline-block border border-gray-300 bg-gray-300"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${grid.cols}, ${cellSize}px)`,
+          gap: '1px'
+        }}
+      >
       {grid.cells.map((row, rowIndex) =>
         row.map((cell, colIndex) => {
+          // Blocked cell (no letter)
           if (!cell.letter) {
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
-                className="w-10 h-10 bg-gray-900"
+                className="bg-gray-300"
+                style={{ width: cellSize, height: cellSize }}
               />
             )
           }
@@ -165,31 +243,34 @@ export function CrosswordGrid({
             selectedCell?.col === colIndex
           const isInWord = isInSelectedWord(rowIndex, colIndex)
           const clueNum = clueNumbers.get(`${rowIndex},${colIndex}`)
-          const isCorrect = cell.userInput && 
-            cell.userInput.toUpperCase() === cell.letter.toUpperCase()
 
           return (
             <div
               key={`${rowIndex}-${colIndex}`}
-              className={`
-                relative w-10 h-10 sm:w-12 sm:h-12 border border-gray-900
-                ${isSelected ? 'bg-yellow-200' : isInWord ? 'bg-blue-100' : 'bg-white'}
-                ${isCorrect && !showingSolution ? 'bg-green-50' : ''}
-              `}
               data-row={rowIndex}
               data-col={colIndex}
+              className={`
+                relative bg-white cursor-pointer
+                ${isSelected ? 'bg-cyan-200' : isInWord ? 'bg-cyan-50' : 'bg-white'}
+              `}
+              style={{ width: cellSize, height: cellSize }}
               onClick={() => {
-                if (isSelected) {
-                  onDirectionChange(
-                    selectedDirection === 'across' ? 'down' : 'across'
-                  )
+                if (isSelected && !showingSolution) {
+                  onDirectionChange(selectedDirection === 'across' ? 'down' : 'across')
                 } else {
                   onCellClick(rowIndex, colIndex)
                 }
               }}
             >
               {clueNum && (
-                <span className="absolute top-0.5 left-0.5 text-[10px] font-bold text-blue-600 leading-none">
+                <span 
+                  className="absolute text-gray-700 font-medium leading-none"
+                  style={{ 
+                    top: '2px', 
+                    left: '2px', 
+                    fontSize: cellSize < 36 ? '8px' : '10px' 
+                  }}
+                >
                   {clueNum}
                 </span>
               )}
@@ -197,8 +278,16 @@ export function CrosswordGrid({
                 type="text"
                 maxLength={1}
                 value={cell.userInput}
-                className="w-full h-full text-center text-lg sm:text-xl font-bold bg-transparent outline-none cursor-pointer uppercase pt-2"
+                className={`
+                  w-full h-full text-center font-semibold bg-transparent outline-none cursor-pointer uppercase
+                  ${showingSolution ? 'text-blue-600' : 'text-gray-900'}
+                `}
+                style={{ 
+                  fontSize: cellSize < 36 ? '14px' : '18px',
+                  paddingTop: clueNum ? '6px' : '0'
+                }}
                 onKeyDown={(e) => handleKeyDown(e, rowIndex, colIndex)}
+                onChange={() => {}} // Controlled by onKeyDown
                 readOnly={showingSolution}
                 tabIndex={-1}
               />
@@ -206,6 +295,7 @@ export function CrosswordGrid({
           )
         })
       )}
+      </div>
     </div>
   )
 }

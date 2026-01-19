@@ -57,7 +57,6 @@ const Index = () => {
   const handleRestartFromLevel1 = useCallback(() => {
     setLevelProgress([])
     setCurrentLevelIndex(0)
-    setView('game')
   }, [])
 
   const handleBackToHome = useCallback(() => {
@@ -71,7 +70,7 @@ const Index = () => {
   const currentLevel = levels[currentLevelIndex]
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen w-full bg-white">
       <Header
         showLeaderboardButton={view === 'home'}
         onLeaderboardClick={() => setShowLeaderboard(true)}
@@ -87,6 +86,7 @@ const Index = () => {
 
       {view === 'game' && currentLevel && (
         <GameBoard
+          key={currentLevel.id}
           level={currentLevel}
           onComplete={handleLevelComplete}
           onBack={handleBackToHome}

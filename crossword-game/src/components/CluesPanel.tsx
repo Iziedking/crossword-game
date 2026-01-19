@@ -32,71 +32,66 @@ export function CluesPanel({
     const isCompleted = completedWords.includes(word.clueNumber)
 
     return (
-      <li
+      <button
         key={`${word.direction}-${word.clueNumber}`}
         className={`
-          p-3 rounded-lg cursor-pointer transition-all
-          ${isSelected 
-            ? 'bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 shadow-sm' 
-            : 'hover:bg-gray-50 border-2 border-transparent'
-          }
-          ${isCompleted ? 'opacity-60' : ''}
+          w-full text-left px-3 py-2 rounded-lg transition-colors
+          ${isSelected ? 'bg-cyan-100' : 'hover:bg-gray-50'}
         `}
         onClick={() => onClueClick(word)}
       >
         <div className="flex items-start gap-2">
-          <span className="font-bold text-blue-600 min-w-[2rem]">
+          <span className="text-cyan-600 font-medium min-w-[1.5rem]">
             {word.clueNumber}.
           </span>
-          <span className={isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}>
+          <span className={`flex-1 ${isCompleted ? 'line-through text-gray-400' : 'text-gray-700'}`}>
             {word.clue}
           </span>
           {isCompleted && (
-            <span className="ml-auto text-green-600 flex-shrink-0">✓</span>
+            <svg className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
           )}
         </div>
-      </li>
+      </button>
     )
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-lg p-4 sm:p-6 h-full overflow-y-auto max-h-[calc(100vh-12rem)] lg:max-h-none">
+    <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 overflow-y-auto max-h-[50vh] lg:max-h-[calc(100vh-12rem)]">
       {note && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-blue-500 rounded-lg">
+        <div className="mb-5 p-3 bg-blue-50 rounded-lg flex gap-2">
+          <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
           <p className="text-sm text-gray-700">
-            <span className="font-bold text-blue-600">💡 Note:</span> {note}
+            <span className="font-semibold text-blue-600">Note:</span> {note}
           </p>
         </div>
       )}
 
-      <div className="space-y-6">
-        <div>
-          <h3 className="font-bold text-lg mb-3 text-gray-900 flex items-center gap-2">
-            <span className="text-blue-600">→</span>
-            Across
-          </h3>
-          <ul className="space-y-2">
-            {acrossWords.length > 0 ? (
-              acrossWords.map(renderClue)
-            ) : (
-              <li className="text-gray-400 italic text-sm">No across clues</li>
-            )}
-          </ul>
-        </div>
+      <div className="space-y-5">
+        {acrossWords.length > 0 && (
+          <div>
+            <h3 className="text-sm font-bold text-cyan-600 uppercase tracking-wide mb-2">
+              Across
+            </h3>
+            <div className="space-y-1">
+              {acrossWords.map(renderClue)}
+            </div>
+          </div>
+        )}
 
-        <div>
-          <h3 className="font-bold text-lg mb-3 text-gray-900 flex items-center gap-2">
-            <span className="text-purple-600">↓</span>
-            Down
-          </h3>
-          <ul className="space-y-2">
-            {downWords.length > 0 ? (
-              downWords.map(renderClue)
-            ) : (
-              <li className="text-gray-400 italic text-sm">No down clues</li>
-            )}
-          </ul>
-        </div>
+        {downWords.length > 0 && (
+          <div>
+            <h3 className="text-sm font-bold text-cyan-600 uppercase tracking-wide mb-2">
+              Down
+            </h3>
+            <div className="space-y-1">
+              {downWords.map(renderClue)}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

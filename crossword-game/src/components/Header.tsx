@@ -10,27 +10,33 @@ export function Header({
   onHomeClick,
 }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur shadow-sm">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 sm:h-20 items-center justify-between">
+    <header className="sticky top-0 z-40 w-full border-b border-gray-100 bg-white">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
           <div 
-            className="flex items-center gap-2 sm:gap-3 cursor-pointer group"
+            className="flex items-center gap-3 cursor-pointer"
             onClick={onHomeClick}
           >
-            <div className="text-2xl sm:text-3xl">🧩</div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-purple-700 transition-all">
-              Crossword Game
-            </h1>
+            {/* logo */}
+            <img 
+              src="/billions-logo.png" 
+              alt="Billions" 
+              className="w-10 h-10 rounded-xl"
+            />
+            <span className="text-xl font-semibold text-gray-900">
+              Billions Crossword
+            </span>
           </div>
           
           {showLeaderboardButton && onLeaderboardClick && (
             <button
               onClick={onLeaderboardClick}
-              className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base font-semibold text-white shadow-md hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-colors"
             >
-              <span className="mr-1.5 sm:mr-2">🏆</span>
-              <span className="hidden sm:inline">Leaderboard</span>
-              <span className="sm:hidden">Rank</span>
+              <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+              </svg>
+              Leaderboard
             </button>
           )}
         </div>

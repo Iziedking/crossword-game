@@ -4,7 +4,6 @@ import { checkWord, formatTime } from '@/utils/crosswordUtils'
 import { useGameState } from '@/hooks/useGameState'
 import { CrosswordGrid } from './CrosswordGrid'
 import { CluesPanel } from './CluesPanel'
-import { useSoundEffects } from '@/hooks/useSoundEffects'
 
 interface GameBoardProps {
   level: CrosswordLevel
@@ -31,52 +30,40 @@ export function GameBoard({
     words: level.words,
   })
 
-  const [selectedCell, setSelectedCell] =
-    useState<{ row: number; col: number } | null>(null)
-  const [selectedDirection, setSelectedDirection] =
-    useState<'across' | 'down'>('across')
+  const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null)
+  const [selectedDirection, setSelectedDirection] = useState<'across' | 'down'>('across')
   const [completedWords, setCompletedWords] = useState<number[]>([])
-  const [showCompletionModal, setShowCompletionModal] = useState(false)
+  const [showGiveUpModal, setShowGiveUpModal] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [gaveUp, setGaveUp] = useState(false)
 
   const prevCompletedWordsRef = useRef<number[]>([])
-  const { playCorrectWord, playLevelComplete } = useSoundEffects()
 
   // Reset UI state when level changes
   useEffect(() => {
     setSelectedCell(null)
     setSelectedDirection('across')
     setCompletedWords([])
-    setShowCompletionModal(false)
+    setShowGiveUpModal(false)
+    setShowSuccessModal(false)
+    setGaveUp(false)
     prevCompletedWordsRef.current = []
   }, [level.id])
 
-  // Check completed words + sounds
+  // Check completed words
   useEffect(() => {
     const completed = level.words
       .filter((word) => checkWord(grid, word))
       .map((word) => word.clueNumber)
 
-    const newlyCompleted = completed.filter(
-      (n) => !prevCompletedWordsRef.current.includes(n)
-    )
-
-    if (newlyCompleted.length > 0 && !isComplete) {
-      playCorrectWord()
-    }
-
     prevCompletedWordsRef.current = completed
     setCompletedWords(completed)
 
-    if (completed.length === level.words.length && !showCompletionModal) {
-      setShowCompletionModal(true)
-      playLevelComplete()
+    // Show success modal if all words completed (and didn't give up)
+    if (completed.length === level.words.length && !showSuccessModal && !gaveUp) {
+      setShowSuccessModal(true)
     }
-  }, [grid, level.words, isComplete, playCorrectWord, playLevelComplete, showCompletionModal])
-
-  const handleContinue = useCallback(() => {
-    setShowCompletionModal(false)
-    onComplete()
-  }, [onComplete])
+  }, [grid, level.words, showSuccessModal, gaveUp])
 
   const handleCellClick = useCallback((row: number, col: number) => {
     setSelectedCell({ row, col })
@@ -94,6 +81,21 @@ export function GameBoard({
     setSelectedDirection(word.direction)
   }, [])
 
+  const handleGiveUp = () => {
+    setShowGiveUpModal(true)
+  }
+
+  const handleViewSolution = () => {
+    setGaveUp(true)
+    showSolution()
+    setShowGiveUpModal(false)
+  }
+
+  const handleContinue = useCallback(() => {
+    setShowSuccessModal(false)
+    onComplete()
+  }, [onComplete])
+
   const getSelectedClueNumber = (): number | null => {
     if (!selectedCell) return null
 
@@ -110,35 +112,44 @@ export function GameBoard({
     return word?.clueNumber ?? null
   }
 
+  const badgeColors: Record<string, string> = {
+    'Meh': 'text-green-600',
+    'Wait': 'text-yellow-600',
+    'Damn': 'text-red-600'
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-      <div className="bg-white/95 backdrop-blur border-b border-gray-200 shadow-sm sticky top-0 z-30">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex-1">
+    <div className="min-h-[calc(100vh-4rem)] w-full bg-white">
+      {/* Top bar */}
+      <div className="border-b border-gray-200 bg-white">
+        <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
               <button
                 onClick={onBack}
-                className="inline-flex items-center text-gray-600 hover:text-blue-600 transition-colors text-sm font-medium mb-2"
+                className="inline-flex items-center text-gray-500 hover:text-gray-700 text-sm mb-2 transition-colors"
               >
-                <span className="mr-1">←</span>
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
                 Back to levels
               </button>
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900">{level.title}</h1>
-              <p className="text-xs sm:text-sm text-gray-500">
-                Level {level.id}: {level.name} • {level.difficulty}
+              <h1 className="text-xl font-semibold text-gray-900">{level.title}</h1>
+              <p className="text-sm text-gray-500">
+                Level {level.id}: <span className={badgeColors[level.name]}>{level.name}</span> &bull; {level.difficulty}
               </p>
             </div>
             
-            <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-4 sm:gap-6">
               <div className="text-center">
-                <div className="text-xl sm:text-2xl font-mono font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <div className="text-xl sm:text-2xl font-mono font-semibold text-cyan-600">
                   {formatTime(secondsElapsed)}
                 </div>
                 <div className="text-xs text-gray-500">Time</div>
               </div>
               
               <div className="text-center">
-                <div className="text-xl sm:text-2xl font-bold text-gray-900">
+                <div className="text-xl sm:text-2xl font-semibold text-gray-900">
                   {completedWords.length}/{level.words.length}
                 </div>
                 <div className="text-xs text-gray-500">Words</div>
@@ -146,11 +157,8 @@ export function GameBoard({
 
               {!isComplete && (
                 <button
-                  onClick={() => {
-                    showSolution()
-                    setShowCompletionModal(true)
-                  }}
-                  className="px-3 sm:px-4 py-2 rounded-lg bg-red-50 text-red-600 font-medium hover:bg-red-100 transition-colors text-sm border border-red-200"
+                  onClick={handleGiveUp}
+                  className="px-4 py-2 text-sm font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
                 >
                   Give Up
                 </button>
@@ -160,9 +168,11 @@ export function GameBoard({
         </div>
       </div>
 
-      <div className="flex-1 container mx-auto px-4 py-6 sm:py-8">
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_350px] gap-6 h-full max-w-7xl mx-auto">
-          <div className="flex items-start justify-center lg:justify-start overflow-x-auto pb-4">
+      {/* Main content */}
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+          {/* Grid section */}
+          <div className="flex justify-center lg:justify-start">
             <CrosswordGrid
               grid={grid}
               words={level.words}
@@ -175,7 +185,8 @@ export function GameBoard({
             />
           </div>
 
-          <div className="lg:order-last">
+          {/* Clues section */}
+          <div className="flex-1 lg:max-w-sm">
             <CluesPanel
               words={level.words}
               note={level.note}
@@ -188,51 +199,72 @@ export function GameBoard({
         </div>
       </div>
 
-      {showCompletionModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 max-w-md w-full text-center shadow-2xl">
-            {isComplete ? (
-              <>
-                <div className="text-6xl sm:text-7xl mb-4">🎉</div>
-                <h2 className="text-2xl sm:text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Amazing Work!
-                </h2>
-                <p className="text-gray-600 mb-6 text-base sm:text-lg">
-                  You solved it in <span className="font-bold text-blue-600">{formatTime(secondsElapsed)}</span>
-                </p>
-                <button
-                  onClick={handleContinue}
-                  className="w-full py-3 sm:py-4 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg text-base sm:text-lg"
-                >
-                  Continue to Next Level
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="text-6xl sm:text-7xl mb-4">💪</div>
-                <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-gray-900">Don't Give Up!</h2>
-                <p className="text-gray-600 mb-2 text-base sm:text-lg">
-                  Time: <span className="font-bold">{formatTime(secondsElapsed)}</span>
-                </p>
-                <p className="text-blue-600 font-semibold mb-6 text-sm sm:text-base">
-                  Every puzzle makes you stronger! 🧠
-                </p>
-                <div className="flex flex-col gap-3">
-                  <button 
-                    onClick={onBack} 
-                    className="py-3 sm:py-4 rounded-lg bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors text-base sm:text-lg"
-                  >
-                    Back to Menu
-                  </button>
-                  <button
-                    onClick={onRestartFromLevel1}
-                    className="py-3 sm:py-4 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold hover:from-blue-700 hover:to-purple-700 transition-all text-base sm:text-lg"
-                  >
-                    Try Again from Level 1
-                  </button>
-                </div>
-              </>
-            )}
+      {/* Give Up Modal */}
+      {showGiveUpModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Don't Give Up!
+            </h2>
+            <p className="text-gray-500 mb-6">
+              Are you sure you want to see the solution?
+            </p>
+            
+            <div className="space-y-3">
+              <button
+                onClick={handleViewSolution}
+                className="w-full py-3 bg-cyan-500 text-white font-medium rounded-lg hover:bg-cyan-600 transition-colors"
+              >
+                View Solution on Grid
+              </button>
+              
+              <button
+                onClick={onBack}
+                className="w-full py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Back to Menu
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowGiveUpModal(false)
+                  onRestartFromLevel1()
+                }}
+                className="w-full py-3 bg-white text-gray-600 font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                Try Again from Level 1
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && !gaveUp && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Level Complete!
+            </h2>
+            <p className="text-gray-500 mb-2">
+              You solved it in {formatTime(secondsElapsed)}
+            </p>
+            <p className="text-sm text-gray-400 mb-6">
+              Great job!
+            </p>
+            
+            <button
+              onClick={handleContinue}
+              className="w-full py-3 bg-cyan-500 text-white font-medium rounded-lg hover:bg-cyan-600 transition-colors"
+            >
+              Continue to Next Level
+            </button>
           </div>
         </div>
       )}
