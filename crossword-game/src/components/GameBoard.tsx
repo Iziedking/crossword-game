@@ -7,16 +7,16 @@ import { CluesPanel } from './CluesPanel'
 
 interface GameBoardProps {
   level: CrosswordLevel
-  onComplete: () => void
+  onComplete: (time: number, gaveUp: boolean) => void
   onBack: () => void
-  onRestartFromLevel1: () => void
+  onGaveUp: () => void
 }
 
 export function GameBoard({
   level,
   onComplete,
   onBack,
-  onRestartFromLevel1,
+  onGaveUp,
 }: GameBoardProps) {
   const {
     grid,
@@ -87,14 +87,20 @@ export function GameBoard({
 
   const handleViewSolution = () => {
     setGaveUp(true)
+    onGaveUp()
     showSolution()
     setShowGiveUpModal(false)
   }
 
   const handleContinue = useCallback(() => {
     setShowSuccessModal(false)
-    onComplete()
-  }, [onComplete])
+    onComplete(secondsElapsed, gaveUp)
+  }, [onComplete, secondsElapsed, gaveUp])
+
+  const handleBackToMenu = useCallback(() => {
+    setShowGiveUpModal(false)
+    onBack()
+  }, [onBack])
 
   const getSelectedClueNumber = (): number | null => {
     if (!selectedCell) return null
@@ -136,7 +142,7 @@ export function GameBoard({
               </button>
               <h1 className="text-xl font-semibold text-gray-900">{level.title}</h1>
               <p className="text-sm text-gray-500">
-                Level {level.id}: <span className={badgeColors[level.name]}>{level.name}</span> &bull; {level.difficulty}
+                Level {level.id}: <span className={badgeColors[level.name]}>{level.name}</span> • {level.difficulty}
               </p>
             </div>
             
@@ -155,7 +161,7 @@ export function GameBoard({
                 <div className="text-xs text-gray-500">Words</div>
               </div>
 
-              {!isComplete && (
+              {!isComplete && !gaveUp && (
                 <button
                   onClick={handleGiveUp}
                   className="px-4 py-2 text-sm font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
@@ -181,7 +187,7 @@ export function GameBoard({
               onCellClick={handleCellClick}
               onCellInput={handleCellInput}
               onDirectionChange={setSelectedDirection}
-              showingSolution={isComplete}
+              showingSolution={isComplete || gaveUp}
             />
           </div>
 
@@ -203,36 +209,38 @@ export function GameBoard({
       {showGiveUpModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-sm w-full p-6 text-center">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
               Don't Give Up!
             </h2>
             <p className="text-gray-500 mb-6">
-              Are you sure you want to see the solution?
+              Are you sure? If you view the solution, your score won't be recorded on the leaderboard.
             </p>
             
             <div className="space-y-3">
               <button
-                onClick={handleViewSolution}
+                onClick={() => setShowGiveUpModal(false)}
                 className="w-full py-3 bg-cyan-500 text-white font-medium rounded-lg hover:bg-cyan-600 transition-colors"
               >
-                View Solution on Grid
+                Keep Playing
               </button>
               
               <button
-                onClick={onBack}
+                onClick={handleViewSolution}
                 className="w-full py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
               >
-                Back to Menu
+                View Solution
               </button>
               
               <button
-                onClick={() => {
-                  setShowGiveUpModal(false)
-                  onRestartFromLevel1()
-                }}
+                onClick={handleBackToMenu}
                 className="w-full py-3 bg-white text-gray-600 font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
               >
-                Try Again from Level 1
+                Back to Menu
               </button>
             </div>
           </div>
@@ -253,7 +261,7 @@ export function GameBoard({
               Level Complete!
             </h2>
             <p className="text-gray-500 mb-2">
-              You solved it in {formatTime(secondsElapsed)}
+              You solved it in <span className="font-mono font-semibold text-cyan-600">{formatTime(secondsElapsed)}</span>
             </p>
             <p className="text-sm text-gray-400 mb-6">
               Great job!
@@ -266,6 +274,18 @@ export function GameBoard({
               Continue to Next Level
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Solution Viewed - Continue Button */}
+      {gaveUp && !showGiveUpModal && (
+        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-40">
+          <button
+            onClick={() => onComplete(secondsElapsed, true)}
+            className="px-8 py-3 bg-cyan-500 text-white font-medium rounded-lg shadow-lg hover:bg-cyan-600 transition-colors"
+          >
+            Continue to Next Level
+          </button>
         </div>
       )}
     </div>

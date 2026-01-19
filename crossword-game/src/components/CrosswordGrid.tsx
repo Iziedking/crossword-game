@@ -118,9 +118,14 @@ export function CrosswordGrid({
   const handleKeyDown = (e: React.KeyboardEvent, row: number, col: number) => {
     if (showingSolution) return
     
+    const currentCell = grid.cells[row]?.[col]
+    
     if (e.key === 'Backspace') {
       e.preventDefault()
-      onCellInput(row, col, '')
+      // Only clear if not a hint cell
+      if (!currentCell?.isHint) {
+        onCellInput(row, col, '')
+      }
       
       // Move to previous cell in word
       const word = words.find((w) => {
@@ -174,7 +179,13 @@ export function CrosswordGrid({
 
     if (/^[a-zA-Z]$/.test(e.key)) {
       e.preventDefault()
-      onCellInput(row, col, e.key)
+      
+      // Don't allow typing in hint cells
+      if (currentCell?.isHint) {
+        // Just move to next cell
+      } else {
+        onCellInput(row, col, e.key)
+      }
       
       // Move to next cell in word
       const word = words.find((w) => {
@@ -279,8 +290,8 @@ export function CrosswordGrid({
                 maxLength={1}
                 value={cell.userInput}
                 className={`
-                  w-full h-full text-center font-semibold bg-transparent outline-none cursor-pointer uppercase
-                  ${showingSolution ? 'text-blue-600' : 'text-gray-900'}
+                  w-full h-full text-center font-semibold bg-transparent outline-none uppercase
+                  ${cell.isHint ? 'text-blue-600 cursor-default' : showingSolution ? 'text-blue-600 cursor-pointer' : 'text-gray-900 cursor-pointer'}
                 `}
                 style={{ 
                   fontSize: cellSize < 36 ? '14px' : '18px',
@@ -288,8 +299,8 @@ export function CrosswordGrid({
                 }}
                 onKeyDown={(e) => handleKeyDown(e, rowIndex, colIndex)}
                 onChange={() => {}} // Controlled by onKeyDown
-                readOnly={showingSolution}
-                tabIndex={-1}
+                readOnly={showingSolution || cell.isHint}
+                tabIndex={cell.isHint ? -1 : -1}
               />
             </div>
           )

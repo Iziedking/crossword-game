@@ -12,7 +12,7 @@ export function useGameState({ rows, cols, words }: UseGameStateProps) {
   const [grid, setGrid] = useState<Grid>(() => createGrid(rows, cols, words))
   const [secondsElapsed, setSecondsElapsed] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Start timer on mount
   useEffect(() => {
@@ -40,10 +40,12 @@ export function useGameState({ rows, cols, words }: UseGameStateProps) {
 
   const updateCell = useCallback((row: number, col: number, value: string) => {
     setGrid((prev) => {
+      const cell = prev.cells[row]?.[col]
+      // Don't allow editing hint cells
+      if (!cell || cell.isHint) return prev
+      
       const newCells = prev.cells.map((r) => r.map((c) => ({ ...c })))
-      if (newCells[row]?.[col]) {
-        newCells[row][col].userInput = value.toUpperCase()
-      }
+      newCells[row][col].userInput = value.toUpperCase()
       return { ...prev, cells: newCells }
     })
   }, [])

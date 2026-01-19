@@ -1,6 +1,12 @@
-import { useState } from 'react'
-import type { LeaderboardEntry } from '@/data/crosswordData'
+import { useState, useEffect } from 'react'
 import { formatTime } from '@/utils/crosswordUtils'
+
+export interface LeaderboardEntry {
+  id: string
+  nickname: string
+  totalTime: number
+  completedAt: string
+}
 
 interface LeaderboardProps {
   entries: LeaderboardEntry[]
@@ -50,12 +56,12 @@ export function Leaderboard({ entries, onClose }: LeaderboardProps) {
                 <div
                   key={entry.id}
                   className={`flex items-center gap-3 p-3 rounded-lg ${
-                    index === 0 ? 'bg-yellow-50' : 
-                    index === 1 ? 'bg-gray-50' : 
-                    index === 2 ? 'bg-orange-50' : 'bg-white'
+                    index === 0 ? 'bg-yellow-50 border border-yellow-200' : 
+                    index === 1 ? 'bg-gray-50 border border-gray-200' : 
+                    index === 2 ? 'bg-orange-50 border border-orange-200' : 'bg-white border border-gray-100'
                   }`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                     index === 0 ? 'bg-yellow-400 text-yellow-900' :
                     index === 1 ? 'bg-gray-300 text-gray-700' :
                     index === 2 ? 'bg-orange-300 text-orange-900' :
@@ -64,13 +70,13 @@ export function Leaderboard({ entries, onClose }: LeaderboardProps) {
                     {index + 1}
                   </div>
                   <div className="flex-1">
-                    <div className="font-medium text-gray-900">{entry.nickname}</div>
+                    <div className="font-semibold text-gray-900">{entry.nickname}</div>
                     <div className="text-xs text-gray-500">
-                      {new Date(entry.completedAt).toLocaleDateString()}
+                      {new Date(entry.completedAt).toLocaleDateString()} at {new Date(entry.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-mono font-semibold text-cyan-600">
+                    <div className="font-mono font-bold text-cyan-600 text-lg">
                       {formatTime(entry.totalTime)}
                     </div>
                   </div>
@@ -86,38 +92,38 @@ export function Leaderboard({ entries, onClose }: LeaderboardProps) {
 
 interface GameCompleteProps {
   totalTime: number
-  levelTimes: { levelId: number; time: number }[]
   onSubmitScore: (nickname: string) => void
   onPlayAgain: () => void
+  canSubmit: boolean
 }
 
 export function GameComplete({
   totalTime,
-  levelTimes,
   onSubmitScore,
   onPlayAgain,
+  canSubmit,
 }: GameCompleteProps) {
   const [nickname, setNickname] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (nickname.trim()) {
+    if (nickname.trim() && canSubmit) {
       onSubmitScore(nickname.trim())
       setSubmitted(true)
     }
   }
 
   return (
-    <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center p-4 bg-gray-50">
-      <div className="bg-white rounded-xl max-w-sm w-full p-6 text-center border border-gray-200">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-gray-50">
+      <div className="bg-white rounded-xl max-w-sm w-full p-6 text-center border border-gray-200 shadow-lg">
         <div className="w-16 h-16 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
           <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
         
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
           Congratulations!
         </h2>
         
@@ -125,29 +131,20 @@ export function GameComplete({
           You completed all levels!
         </p>
 
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <div className="text-2xl font-mono font-semibold text-cyan-600 mb-1">
+        <div className="bg-cyan-50 rounded-xl p-5 mb-6">
+          <div className="text-sm text-cyan-600 font-medium mb-1">Total Time</div>
+          <div className="text-4xl font-mono font-bold text-cyan-700">
             {formatTime(totalTime)}
-          </div>
-          <div className="text-xs text-gray-500 mb-4">Total time</div>
-          
-          <div className="space-y-1 text-sm">
-            {levelTimes.map((lt) => (
-              <div key={lt.levelId} className="flex justify-between">
-                <span className="text-gray-600">Level {lt.levelId}:</span>
-                <span className="font-mono text-gray-900">{formatTime(lt.time)}</span>
-              </div>
-            ))}
           </div>
         </div>
 
-        {!submitted ? (
+        {canSubmit && !submitted ? (
           <form onSubmit={handleSubmit} className="space-y-3">
             <input
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              placeholder="Enter your name"
+              placeholder="Enter your name for leaderboard"
               className="w-full px-4 py-3 border border-gray-200 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
               maxLength={20}
               required
@@ -155,20 +152,25 @@ export function GameComplete({
             
             <button
               type="submit"
-              className="w-full py-3 bg-cyan-500 text-white font-medium rounded-lg hover:bg-cyan-600 transition-colors"
+              className="w-full py-3 bg-cyan-500 text-white font-semibold rounded-lg hover:bg-cyan-600 transition-colors"
             >
               Submit to Leaderboard
             </button>
           </form>
-        ) : (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-            <span className="text-green-600 font-medium">Score submitted!</span>
+        ) : submitted ? (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-center gap-2 text-green-600 font-semibold">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              Score submitted!
+            </div>
           </div>
-        )}
+        ) : null}
 
         <button
           onClick={onPlayAgain}
-          className="w-full mt-3 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+          className={`w-full py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors ${submitted || !canSubmit ? 'mt-0' : 'mt-3'}`}
         >
           Play Again
         </button>

@@ -2,30 +2,41 @@ import { useState, useCallback } from 'react'
 import { Header } from '@/components/Header'
 import { LevelSelect } from '@/components/LevelSelect'
 import { GameBoard } from '@/components/GameBoard'
-import { Leaderboard, GameComplete } from '@/components/Leaderboard'
-import { levels, type LeaderboardEntry } from '@/data/crosswordData'
+import { GameComplete } from '@/components/GameComplete'
+import { levels } from '@/data/crosswordData'
 
 type View = 'home' | 'game' | 'complete'
 
-interface LevelProgress {
-  levelId: number
-  time: number
-  completed: boolean
-}
-
 const Index = () => {
   const [view, setView] = useState<View>('home')
-  const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0)
-  const [levelProgress, setLevelProgress] = useState<LevelProgress[]>([])
-  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([])
+  const [completedLevelIds, setCompletedLevelIds] = useState<number[]>([])
+  const [totalTime, setTotalTime] = useState(0)
+  const [gaveUp, setGaveUp] = useState(false)
 
   const handleSelectLevel = useCallback((levelIndex: number) => {
     setCurrentLevelIndex(levelIndex)
     setView('game')
+    setGaveUp(false)
   }, [])
 
-  const handleLevelComplete = useCallback(() => {
+  const handleLevelComplete = useCallback((time: number, didGiveUp: boolean) => {
+    const currentLevel = levels[currentLevelIndex]
+    
+    // Update total time
+    setTotalTime(prev => prev + time)
+    
+    // Mark level as completed
+    setCompletedLevelIds(prev => 
+      prev.includes(currentLevel.id) ? prev : [...prev, currentLevel.id]
+    )
+    
+    // Track if user gave up at any point
+    if (didGiveUp) {
+      setGaveUp(true)
+    }
+    
+    // Move to next level or complete
     if (currentLevelIndex < levels.length - 1) {
       setCurrentLevelIndex(prev => prev + 1)
     } else {
@@ -33,49 +44,27 @@ const Index = () => {
     }
   }, [currentLevelIndex])
 
-  const handleSubmitScore = useCallback((nickname: string) => {
-    const totalTime = levelProgress.reduce((acc, lp) => acc + lp.time, 0)
-    const entry: LeaderboardEntry = {
-      id: Date.now().toString(),
-      nickname,
-      totalTime,
-      completedAt: new Date().toISOString(),
-      levelTimes: levelProgress.reduce((acc, lp) => {
-        acc[lp.levelId] = lp.time
-        return acc
-      }, {} as { [key: number]: number })
-    }
-    setLeaderboardEntries(prev => [...prev, entry])
-  }, [levelProgress])
-
   const handlePlayAgain = useCallback(() => {
-    setLevelProgress([])
+    setCompletedLevelIds([])
     setCurrentLevelIndex(0)
+    setTotalTime(0)
+    setGaveUp(false)
     setView('home')
-  }, [])
-
-  const handleRestartFromLevel1 = useCallback(() => {
-    setLevelProgress([])
-    setCurrentLevelIndex(0)
   }, [])
 
   const handleBackToHome = useCallback(() => {
     setView('home')
   }, [])
 
-  const completedLevelIds = levelProgress
-    .filter((lp) => lp.completed)
-    .map((lp) => lp.levelId)
+  const handleGaveUp = useCallback(() => {
+    setGaveUp(true)
+  }, [])
 
   const currentLevel = levels[currentLevelIndex]
 
   return (
     <div className="min-h-screen w-full bg-white">
-      <Header
-        showLeaderboardButton={view === 'home'}
-        onLeaderboardClick={() => setShowLeaderboard(true)}
-        onHomeClick={handleBackToHome}
-      />
+      <Header onHomeClick={handleBackToHome} />
 
       {view === 'home' && (
         <LevelSelect
@@ -90,26 +79,14 @@ const Index = () => {
           level={currentLevel}
           onComplete={handleLevelComplete}
           onBack={handleBackToHome}
-          onRestartFromLevel1={handleRestartFromLevel1}
+          onGaveUp={handleGaveUp}
         />
       )}
 
       {view === 'complete' && (
         <GameComplete
-          totalTime={levelProgress.reduce((acc, lp) => acc + lp.time, 0)}
-          levelTimes={levelProgress.map((lp) => ({
-            levelId: lp.levelId,
-            time: lp.time,
-          }))}
-          onSubmitScore={handleSubmitScore}
+          totalTime={totalTime}
           onPlayAgain={handlePlayAgain}
-        />
-      )}
-
-      {showLeaderboard && (
-        <Leaderboard
-          entries={leaderboardEntries}
-          onClose={() => setShowLeaderboard(false)}
         />
       )}
     </div>
