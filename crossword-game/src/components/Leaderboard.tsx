@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { formatTime } from '@/utils/crosswordUtils'
 
 export interface LeaderboardEntry {
